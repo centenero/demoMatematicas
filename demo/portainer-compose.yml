@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  personas-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: personas-app
+    image: personas-app:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: personas-app
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    restart: unless-stopped
+    networks:
+      - personas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/personas"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Limites de recursos (opcional)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Labels para Portainer (ayuda a identificar la app)
+    labels:
+      com.portainer.description: "Aplicación de Gestión de Personas con Math Game"
+      com.portainer.app.name: "Personas App"
+      com.portainer.app.version: "1.0"
+    # Volúmenes para persistencia (opcional)
+    volumes:
+      - personas-data:/app/data
+
+volumes:
+  personas-data:
+    driver: local
+
+networks:
+  personas-network:
+    driver: bridge
