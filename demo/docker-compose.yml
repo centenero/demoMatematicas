@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: personas-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: personas-app
+      SPRING_PROFILES_ACTIVE: prod
+    restart: unless-stopped
+    networks:
+      - personas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/personas"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  personas-network:
+    driver: bridge

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Math Race Java Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        /* Puedes reutilizar el CSS que teníamos antes, funciona igual */
+        .penalty-overlay { display:none; background:rgba(255,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1 id="question">Esperando partida...</h1>
+        <div id="options"></div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let playerId = "user_" + Math.random().toString(36).substring(7);
+
+        function connect() {
+            // El endpoint que definimos en Java: registry.addEndpoint("/math-game")
+            const socket = new SockJS('/math-game');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                console.log('Conectado: ' + frame);
+                
+                // Suscribirse a una sala específica
+                stompClient.subscribe('/topic/room/sala1', function (response) {
+                    renderGame(JSON.parse(response.body));
+                });
+            });
+        }
+
+        function sendAnswer(value) {
+            // Enviamos al prefijo /app + el @MessageMapping del controlador
+            stompClient.send("/app/game/sala1/answer", {}, JSON.stringify({
+                'playerId': playerId,
+                'value': value
+            }));
+        }
+
+        function renderGame(data) {
+            if(data.type === "UPDATE") {
+                document.getElementById('question').innerText = data.room.currentQuestion;
+                // ... lógica de renderizado de botones ...
+            } else if(data.type === "WRONG") {
+                // Activar tu lógica de penalización de 2 segundos aquí
+                alert("Incorrecto - Bloqueado 2s");
+            }
+        }
+
+        connect();
+    </script>
+</body>
+</html>

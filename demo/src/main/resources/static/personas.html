@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Personas - Modal Based UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal {
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            animation: slideIn 0.3s ease;
+        }
+        .modal.show {
+            @apply flex;
+        }
+        .modal:not(.show) {
+            @apply hidden;
+        }
+        .delete-confirm-modal.show {
+            @apply flex;
+        }
+        .delete-confirm-modal:not(.show) {
+            @apply hidden;
+        }
+    </style>
+<body class="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 p-5">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-center text-white text-4xl font-bold mb-8 drop-shadow-lg">📋 Gestión de Personas</h1>
+
+        <div class="flex justify-between items-center mb-5">
+            <div></div>
+            <button class="bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-lg font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5" onclick="openFormModal()">➕ Agregar Nueva Persona</button>
+        </div>
+
+        <!-- Modal para agregar/editar -->
+        <div id="formModal" class="modal fixed z-50 left-0 top-0 w-full h-full bg-black/60 hidden items-center justify-center">
+            <div class="modal-content bg-white rounded-xl shadow-2xl w-11/12 max-w-md">
+                <div class="modal-header flex justify-between items-center p-5 border-b-2 border-indigo-500 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-xl">
+                    <h2 id="modalTitle" class="text-lg font-bold m-0">Agregar Nueva Persona</h2>
+                    <span class="close text-3xl font-bold text-white cursor-pointer transition-transform hover:rotate-90" onclick="closeFormModal()">&times;</span>
+                </div>
+
+                <form id="personaForm" class="p-6">
+                    <input type="hidden" id="personaId">
+
+                    <div class="mb-4">
+                        <label for="nombre" class="block mb-2 text-gray-700 font-semibold">Nombre:</label>
+                        <input type="text" id="nombre" name="nombre" required class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="apellidos" class="block mb-2 text-gray-700 font-semibold">Apellidos:</label>
+                        <input type="text" id="apellidos" name="apellidos" required class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="telefono" class="block mb-2 text-gray-700 font-semibold">Teléfono:</label>
+                        <input type="tel" id="telefono" name="telefono" required class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-save flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5" id="btnSave">Guardar Persona</button>
+                        <button type="button" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg font-semibold transition-all" onclick="closeFormModal()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación de eliminación -->
+        <div id="deleteConfirmModal" class="delete-confirm-modal fixed z-[1001] left-0 top-0 w-full h-full bg-black/60 hidden items-center justify-center">
+            <div class="delete-confirm-content bg-white rounded-xl shadow-2xl w-11/12 max-w-sm text-center">
+                <div class="modal-header flex justify-between items-center p-5 border-b-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-xl">
+                    <h2 class="text-lg font-bold m-0">⚠️ Confirmar Eliminación</h2>
+                    <span class="close text-3xl font-bold text-white cursor-pointer transition-transform hover:rotate-90" onclick="closeDeleteConfirmModal()">&times;</span>
+                </div>
+                <div class="delete-confirm-message p-6 text-lg text-gray-800">
+                    ¿Estás seguro de que deseas eliminar esta persona? Esta acción no se puede deshacer.
+                </div>
+                <div class="delete-confirm-buttons flex gap-3 px-6 pb-6">
+                    <button class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-semibold transition-all" onclick="confirmDelete()">Sí, Eliminar</button>
+                    <button class="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg font-semibold transition-all" onclick="closeDeleteConfirmModal()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-5">
+            <!-- Tabla de personas -->
+            <div class="bg-white rounded-xl shadow-xl p-8">
+                <h2 class="text-gray-800 mb-5 text-2xl font-bold border-b-4 border-indigo-500 pb-3">Listado de Personas</h2>
+
+                <div class="flex gap-2 mb-4">
+                    <button class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all hover:shadow-lg hover:-translate-y-0.5" onclick="exportToExcel()">📥 Exportar a Excel</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex flex-col">
+                        <label for="filterNombre" class="mb-2 text-gray-700 font-semibold text-sm">🔍 Filtrar por Nombre:</label>
+                        <input 
+                            type="text" 
+                            id="filterNombre" 
+                            placeholder="Buscar nombre..."
+                            class="p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        >
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label for="filterApellidos" class="mb-2 text-gray-700 font-semibold text-sm">🔍 Filtrar por Apellidos:</label>
+                        <input 
+                            type="text" 
+                            id="filterApellidos" 
+                            placeholder="Buscar apellidos..."
+                            class="p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        >
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label for="filterTelefono" class="mb-2 text-gray-700 font-semibold text-sm">🔍 Filtrar por Teléfono:</label>
+                        <input 
+                            type="text" 
+                            id="filterTelefono" 
+                            placeholder="Buscar teléfono..."
+                            class="p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        >
+                    </div>
+
+                    <div class="flex flex-col justify-end">
+                        <button class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-all hover:shadow-md hover:-translate-y-0.5" onclick="clearFilters()">🔄 Limpiar Filtros</button>
+                    </div>
+                </div>
+
+                <div id="tableContainer"></div>
+                <div id="filterInfo" class="text-gray-600 text-sm mt-3 italic"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script>
+        const API_URL = '/api/personas';
+        let stompClient = null;
+        let allPersonas = [];
+        let currentSortField = null;
+        let currentSortDirection = 'asc';
+        let personaToDelete = null;
+
+        window.addEventListener('load', () => {
+            loadPersonas();
+            connectWebSocket();
+            setupEventListeners();
+        });
+
+        function openFormModal() {
+            resetForm();
+            document.getElementById('modalTitle').textContent = 'Agregar Nueva Persona';
+            document.getElementById('btnSave').textContent = 'Guardar Persona';
+            document.getElementById('formModal').classList.add('show');
+        }
+
+        function closeFormModal() {
+            document.getElementById('formModal').classList.remove('show');
+            resetForm();
+        }
+
+        function openDeleteConfirmModal(id) {
+            personaToDelete = id;
+            document.getElementById('deleteConfirmModal').classList.add('show');
+        }
+
+        function closeDeleteConfirmModal() {
+            document.getElementById('deleteConfirmModal').classList.remove('show');
+            personaToDelete = null;
+        }
+
+        window.onclick = function(event) {
+            const formModal = document.getElementById('formModal');
+            const deleteModal = document.getElementById('deleteConfirmModal');
+
+            if (event.target === formModal) {
+                closeFormModal();
+            }
+            if (event.target === deleteModal) {
+                closeDeleteConfirmModal();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('filterNombre').addEventListener('input', applyFilters);
+            document.getElementById('filterApellidos').addEventListener('input', applyFilters);
+            document.getElementById('filterTelefono').addEventListener('input', applyFilters);
+            document.getElementById('personaForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await savePersona();
+            });
+        }
+
+        function connectWebSocket() {
+            const socket = new SockJS('/ws-personas');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, (frame) => {
+                console.log('Conectado al WebSocket');
+                stompClient.subscribe('/topic/personas', (message) => {
+                    const notification = JSON.parse(message.body);
+                    loadPersonas();
+                });
+            }, (error) => {
+                console.error('Error al conectar WebSocket:', error);
+                setTimeout(connectWebSocket, 5000);
+            });
+        }
+
+        async function loadPersonas() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Error al cargar personas');
+
+                allPersonas = await response.json();
+                applyFilters();
+            } catch (error) {
+                showMessage('Error al cargar los datos: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function applyFilters() {
+            const filterNombre = document.getElementById('filterNombre').value.toLowerCase();
+            const filterApellidos = document.getElementById('filterApellidos').value.toLowerCase();
+            const filterTelefono = document.getElementById('filterTelefono').value.toLowerCase();
+
+            filterAndSortPersonas(filterNombre, filterApellidos, filterTelefono);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterNombre').value = '';
+            document.getElementById('filterApellidos').value = '';
+            document.getElementById('filterTelefono').value = '';
+            applyFilters();
+        }
+
+        function filterAndSortPersonas(filterNombre = '', filterApellidos = '', filterTelefono = '') {
+            let filtered = allPersonas.filter(persona => {
+                const nombre = persona.nombre.toLowerCase();
+                const apellidos = persona.apellidos.toLowerCase();
+                const telefono = persona.telefono.toLowerCase();
+
+                if (filterNombre && !nombre.includes(filterNombre)) return false;
+                if (filterApellidos && !apellidos.includes(filterApellidos)) return false;
+                if (filterTelefono && !telefono.includes(filterTelefono)) return false;
+
+                return true;
+            });
+
+            if (currentSortField) {
+                filtered.sort((a, b) => {
+                    let valueA = a[currentSortField];
+                    let valueB = b[currentSortField];
+
+                    if (typeof valueA === 'string') {
+                        valueA = valueA.toLowerCase();
+                        valueB = valueB.toLowerCase();
+                    }
+
+                    if (valueA < valueB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valueA > valueB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            renderTable(filtered, filterNombre, filterApellidos, filterTelefono);
+        }
+
+        function sortByColumn(field) {
+            if (currentSortField === field) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortField = field;
+                currentSortDirection = 'asc';
+            }
+
+            applyFilters();
+        }
+
+        function getSortIndicator(field) {
+            if (currentSortField !== field) return '';
+            return currentSortDirection === 'asc' ? ' ▲' : ' ▼';
+        }
+
+        async function savePersona() {
+            const id = document.getElementById('personaId').value;
+            const nombre = document.getElementById('nombre').value;
+            const apellidos = document.getElementById('apellidos').value;
+            const telefono = document.getElementById('telefono').value;
+
+            if (!nombre.trim() || !apellidos.trim() || !telefono.trim()) {
+                showMessage('Por favor, completa todos los campos', 'error');
+                return;
+            }
+
+            const persona = { nombre, apellidos, telefono };
+
+            try {
+                const url = id ? `${API_URL}/${id}` : API_URL;
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(persona)
+                });
+
+                if (!response.ok) throw new Error('Error al guardar');
+
+                const message = id ? 'Persona actualizada correctamente' : 'Persona creada correctamente';
+                showMessage(message, 'success');
+                closeFormModal();
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function editPersona(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                if (!response.ok) throw new Error('Error al obtener persona');
+
+                const persona = await response.json();
+
+                document.getElementById('personaId').value = persona.id;
+                document.getElementById('nombre').value = persona.nombre;
+                document.getElementById('apellidos').value = persona.apellidos;
+                document.getElementById('telefono').value = persona.telefono;
+                document.getElementById('modalTitle').textContent = 'Editar Persona';
+                document.getElementById('btnSave').textContent = 'Actualizar Persona';
+                document.getElementById('formModal').classList.add('show');
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function deletePersona(id) {
+            openDeleteConfirmModal(id);
+        }
+
+        async function confirmDelete() {
+            if (!personaToDelete) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${personaToDelete}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Error al eliminar');
+
+                showMessage('Persona eliminada correctamente', 'success');
+                closeDeleteConfirmModal();
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function renderTable(personas, filterNombre = '', filterApellidos = '', filterTelefono = '') {
+            const tableContainer = document.getElementById('tableContainer');
+            const filterInfo = document.getElementById('filterInfo');
+
+            if (personas.length === 0) {
+                if (filterNombre || filterApellidos || filterTelefono) {
+                    tableContainer.innerHTML = '<div class="text-center py-10 text-gray-500"><p class="text-lg">No se encontraron resultados con los filtros aplicados</p></div>';
+                    filterInfo.textContent = `Se buscó entre ${allPersonas.length} personas`;
+                } else if (allPersonas.length === 0) {
+                    tableContainer.innerHTML = '<div class="text-center py-10 text-gray-500"><p class="text-lg">No hay personas registradas</p></div>';
+                    filterInfo.textContent = '';
+                } else {
+                    tableContainer.innerHTML = '<div class="text-center py-10 text-gray-500"><p class="text-lg">No hay resultados</p></div>';
+                    filterInfo.textContent = '';
+                }
+                return;
+            }
+
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse mt-4">
+                        <thead>
+                            <tr class="bg-indigo-500 text-white">
+                                <th class="p-3 text-left font-semibold cursor-pointer select-none hover:bg-indigo-600" onclick="sortByColumn('id')">ID${getSortIndicator('id')}</th>
+                                <th class="p-3 text-left font-semibold cursor-pointer select-none hover:bg-indigo-600" onclick="sortByColumn('nombre')">Nombre${getSortIndicator('nombre')}</th>
+                                <th class="p-3 text-left font-semibold cursor-pointer select-none hover:bg-indigo-600" onclick="sortByColumn('apellidos')">Apellidos${getSortIndicator('apellidos')}</th>
+                                <th class="p-3 text-left font-semibold cursor-pointer select-none hover:bg-indigo-600" onclick="sortByColumn('telefono')">Teléfono${getSortIndicator('telefono')}</th>
+                                <th class="p-3 text-left font-semibold">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            personas.forEach(persona => {
+                const highlightText = (text, term) => {
+                    if (!term) return text;
+                    const regex = new RegExp(`(${term})`, 'gi');
+                    return text.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
+                };
+
+                html += `
+                    <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <td class="p-3">${persona.id}</td>
+                        <td class="p-3">${highlightText(persona.nombre, filterNombre)}</td>
+                        <td class="p-3">${highlightText(persona.apellidos, filterApellidos)}</td>
+                        <td class="p-3">${highlightText(persona.telefono, filterTelefono)}</td>
+                        <td class="p-3">
+                            <div class="flex gap-2">
+                                <button class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold transition-all" onclick="editPersona(${persona.id})">✏️ Editar</button>
+                                <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold transition-all" onclick="deletePersona(${persona.id})">🗑️ Eliminar</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            tableContainer.innerHTML = html;
+
+            if (filterNombre || filterApellidos || filterTelefono) {
+                const filtrosActivos = [];
+                if (filterNombre) filtrosActivos.push(`Nombre: "${filterNombre}"`);
+                if (filterApellidos) filtrosActivos.push(`Apellidos: "${filterApellidos}"`);
+                if (filterTelefono) filtrosActivos.push(`Teléfono: "${filterTelefono}"`);
+                filterInfo.textContent = `Se encontraron ${personas.length} de ${allPersonas.length} personas (${filtrosActivos.join(', ')})`;
+            } else if (personas.length < allPersonas.length) {
+                filterInfo.textContent = `Mostrando ${personas.length} de ${allPersonas.length} personas`;
+            } else {
+                filterInfo.textContent = `Total: ${personas.length} personas`;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('personaForm').reset();
+            document.getElementById('personaId').value = '';
+        }
+
+        function showMessage(message, type = '') {
+            const formModal = document.querySelector('#formModal form');
+            let msgElement = document.querySelector('#formModal .message');
+            
+            if (!msgElement) {
+                msgElement = document.createElement('div');
+                msgElement.className = 'message';
+                msgElement.id = 'inlineMessage';
+                formModal.parentElement.insertBefore(msgElement, formModal);
+            }
+            
+            if (message) {
+                const bgClass = type === 'success' ? 'bg-green-100' : 'bg-red-100';
+                const textClass = type === 'success' ? 'text-green-800' : 'text-red-800';
+                const borderClass = type === 'success' ? 'border-green-300' : 'border-red-300';
+                
+                msgElement.className = `message p-4 rounded-lg mb-4 ${bgClass} ${textClass} border ${borderClass}`;
+                msgElement.textContent = message;
+                msgElement.style.display = 'block';
+
+                setTimeout(() => {
+                    msgElement.style.display = 'none';
+                }, 5000);
+            } else {
+                msgElement.style.display = 'none';
+            }
+        }
+
+        function exportToExcel() {
+            try {
+                const link = document.createElement('a');
+                link.href = '/api/personas/export/excel';
+                link.download = 'personas.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessage('Archivo descargado correctamente', 'success');
+            } catch (error) {
+                showMessage('Error al descargar el archivo: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
+                showMessage('Archivo descargado correctamente', 'success');
+            } catch (error) {
+                showMessage('Error al descargar el archivo: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+build
+.gradle
+.git
+.gitignore
+target
+*.class
+*.jar
+*.log
+.DS_Store
+node_modules
+npm-debug.log
+.vscode
+.idea
+.run
+*.iml
+.env
