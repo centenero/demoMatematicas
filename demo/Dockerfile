@@ -1,5 +1,5 @@
 # Etapa 1: Compilar la aplicación
-FROM gradle:8.6-jdk21 AS builder
+FROM gradle:9.2.1-jdk21 AS builder
 
 WORKDIR /app
 
